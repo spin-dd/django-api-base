@@ -33,10 +33,13 @@ class WordFilter(django_filters.CharFilter):
 
         def _q(lookup, val):
             key = f"{lookup}__{self.lookup_expr}"
-            val2 = jaconv.zen2han(val)
-            if val2 == val:
-                return Q((key, val))
-            return Q((key, val)) | Q((key, val2))
+            vals = set(
+                [
+                    jaconv.zen2han(val, ascii=True, kana=True, digit=True),
+                    jaconv.han2zen(val, ascii=True, kana=True, digit=True),
+                ]
+            )
+            return reduce(operator.or_, (Q(**{key: v}) for v in vals))
 
         vals = re.split(self.delimiters, value)
         query = [reduce(operator.or_, [_q(i, v) for i in self.lookups]) for v in vals if v]
