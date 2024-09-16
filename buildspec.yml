@@ -5,17 +5,22 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      - echo "pre_build"
-      - echo "Launch docker daemon in CodeBuild"
-      - bash /usr/local/bin/dockerd-entrypoint.sh
+      - |
+        if [ "${TRIGGERING_REPO}" = "spin-dd/django-api-base" ]; then
+          echo "pre_build"
+          echo "Launch docker daemon in CodeBuild"
+          bash /usr/local/bin/dockerd-entrypoint.sh
+        fi
     finally:
       - echo "CODEBUILD_BUILD_SUCCEEDING is $CODEBUILD_BUILD_SUCCEEDING"
   build:
     on-failure: ABORT
     commands:
-      - echo "do some testing. ${BUILD_DOCKER}"
-      - BUILD_DOCKER=true
-
+      - |
+        if [ "${TRIGGERING_REPO}" = "spin-dd/django-api-base" ]; then
+          echo "do some testing. ${BUILD_DOCKER}"
+          BUILD_DOCKER=true
+        fi
   post_build:
     on-failure: ABORT
     commands:
