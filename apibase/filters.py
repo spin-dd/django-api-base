@@ -84,9 +84,19 @@ class BaseFilter(django_filters.FilterSet):
 
         if lookup_type == "exact" and filter_class == django_filters.ChoiceFilter:
             if isinstance(field, IntegerField):
-                # print(field)
                 filter_class = IntFilter
                 param = {}
+
+        # exactフィルターの場合、モデルフィールドの情報を反映
+        if lookup_type == "exact":
+            # verbose_nameをlabelに設定
+            if hasattr(field, "verbose_name") and field.verbose_name:
+                param["label"] = str(field.verbose_name)
+
+            # help_textをhelp_textに設定
+            if hasattr(field, "help_text") and field.help_text:
+                if "help_text" not in param:
+                    param["help_text"] = str(field.help_text)
 
         return filter_class, param
 
