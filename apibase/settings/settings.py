@@ -27,7 +27,7 @@ def import_from_string(val, setting_name):
         raise ImportError(msg)
 
 
-class Settings(object):
+class Settings:
     """base DRF APISettings"""
 
     def __init__(self, user_settings=None, defaults=None, import_strings=None):

@@ -1,4 +1,5 @@
 from graphene.types import resolver
+
 # https://docs.graphene-python.org/projects/django/en/latest/queries/
 from graphene_django.rest_framework.mutation import SerializerMutation
 from graphql_relay import from_global_id

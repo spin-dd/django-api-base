@@ -1,0 +1,23 @@
+[global]
+excludes = [
+  ".devenv/**",
+  ".direnv/**",
+  ".venv/**",
+  "venv/**",
+  "**/migrations/**",
+  "**/__pycache__/**",
+]
+
+[formatter.nix]
+command = "nixfmt"
+includes = ["*.nix"]
+
+[formatter.ruff-format]
+command = "ruff"
+options = ["format"]
+includes = ["*.py"]
+
+[formatter.ruff-check]
+command = "ruff"
+options = ["check", "--fix"]
+includes = ["*.py"]

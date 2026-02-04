@@ -3,14 +3,15 @@ from pathlib import Path
 
 import yaml
 from django.apps import apps
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Max
+from django.db.models.functions import Coalesce
 from factory import fuzzy as FZ
 from gql import gql
 from graphql import print_ast
-from django.db.models import Max
-from django.db.models.functions import Coalesce
-from apibase.utils import query
+
 from apibase.graphql.utils import strip_relay
-from django.contrib.contenttypes.models import ContentType
+from apibase.utils import query
 
 
 def get_test_fixture(name, app_label=None, base=None):
@@ -100,4 +101,4 @@ class FixtureMixin:
 
     @classmethod
     def reset_sequence_by_id(cls):
-        cls.reset_sequence(cls._meta.model.objects.aggregate(max=Coalesce(Max('id'), 0))["max"] + 1)
+        cls.reset_sequence(cls._meta.model.objects.aggregate(max=Coalesce(Max("id"), 0))["max"] + 1)

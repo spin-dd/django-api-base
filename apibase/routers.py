@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter as DrfDefaultRouter
 
 class DefaultRouter(DrfDefaultRouter):
     def get_default_basename(self, viewset):
-        """ Generate defautl 'basename' """
+        """Generate defautl 'basename'"""
         queryset = getattr(viewset, "queryset", None)
         if queryset is None:
             app_label = viewset.__module__.split(".")[0]

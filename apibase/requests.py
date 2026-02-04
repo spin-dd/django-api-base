@@ -1,11 +1,9 @@
-from urllib.parse import urlparse
 from io import StringIO
+from urllib.parse import urlparse
 
-
-from django.conf import settings
-from django.core.handlers.wsgi import WSGIRequest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sites.models import Site
+from django.core.handlers.wsgi import WSGIRequest
 
 DEFAULTS = {
     "REQUEST_METHOD": "GET",
@@ -23,7 +21,6 @@ DEFAULTS = {
 
 
 def create_request(url="/", user=None, params=None, site=None):
-
     try:
         site = site or Site.objects.get_current()
     except Exception:

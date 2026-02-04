@@ -21,7 +21,7 @@ def has_perms(func, permission, *args, **kwargs):
 
 def is_safe_method(request):
     return request.method in permissions.SAFE_METHODS
-    
+
 
 class Permission(permissions.IsAuthenticated):
     PERM_CODE = None
@@ -51,7 +51,7 @@ class Permission(permissions.IsAuthenticated):
         return isvalid
 
     def has_query_permission(self, queryset, info, permcode=None):
-        """ check for graphql query """
+        """check for graphql query"""
         permcode = permcode or self.PERM_CODE
         user = info.context.user
         if not self.PRIVATE or user.is_staff or user.has_perm(permcode):

@@ -1,14 +1,7 @@
-import json
-
-import graphene.relay
-from django.db.models import QuerySet
-from graphene.types import generic
-
 # https://docs.graphene-python.org/projects/django/en/latest/queries/
 from graphene_django.filter import DjangoFilterConnectionField
 
 from .. import filters, utils
-from .encoders import JSONEncode
 from .connections import FilteringConnection
 
 
@@ -25,7 +18,7 @@ class NodeSet(DjangoFilterConnectionField):
         class NodeSetConnection(FilteringConnection):
             class Meta:
                 node = self._type
-                name = "{}{}NodeSetConnection".format(self.name_prefix, self._type._meta.name)
+                name = f"{self.name_prefix}{self._type._meta.name}NodeSetConnection"
 
         return NodeSetConnection
 

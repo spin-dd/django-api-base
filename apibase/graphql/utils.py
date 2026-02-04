@@ -1,5 +1,5 @@
 def strip_relay(obj, recursive=False):
-    """ remove relay nodes"""
+    """remove relay nodes"""
     if isinstance(obj, list):
         return [strip_relay(i, recursive=recursive) for i in obj]
 

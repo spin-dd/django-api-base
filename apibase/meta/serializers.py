@@ -4,7 +4,6 @@ from rest_framework import serializers
 
 class ModelFieldSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
-
         field = dict(zip(("name", "type", "args", "kwargs"), instance.deconstruct()))
         field["args"] = [serializer_factory(i).serialize()[0] for i in field["args"]]
         field["kwargs"] = dict((k, serializer_factory(v).serialize()[0]) for (k, v) in field["kwargs"].items())

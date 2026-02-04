@@ -1,5 +1,5 @@
-from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
+from django.urls import reverse
 
 
 def endpoint(instance_or_model, action, **params):

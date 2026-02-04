@@ -1,16 +1,16 @@
 import inspect
 import re
 
+from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
 from django.db.models.fields.reverse_related import OneToOneRel
-from django.contrib.contenttypes.fields import GenericRelation
 from django.http import QueryDict
 from django.urls import reverse
 from rest_framework import exceptions, fields, serializers
 from rest_framework.fields import empty
 
 from .urn import model_urn, rest_endpoint_from_urn
-from django.contrib.contenttypes.models import ContentType
 
 
 def to_urn(instance, nss=None, nid=None):
@@ -248,7 +248,7 @@ class BatchSerializerMixin:
     def to_internal_value(self, data):
         ret = super().to_internal_value(data)
         id_attr = getattr(self.Meta, "update_lookup_field", "id")
-        request_method = getattr(getattr(self.context.get("view"), "request"), "method", "")
+        request_method = getattr(self.context.get("view").request, "method", "")
 
         if all(
             (
@@ -273,12 +273,12 @@ class BatchListSerializer(serializers.ListSerializer):
 
         updating = {i.pop(id_attr): i for i in all_validated_data}
 
-        if not all((bool(i) and not inspect.isclass(i) for i in updating.keys())):
+        if not all(bool(i) and not inspect.isclass(i) for i in updating.keys()):
             raise exceptions.ValidationError("")
 
         objects_to_update = queryset.filter(
             **{
-                "{}__in".format(id_attr): updating.keys(),
+                f"{id_attr}__in": updating.keys(),
             }
         )
 

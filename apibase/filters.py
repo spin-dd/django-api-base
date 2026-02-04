@@ -1,6 +1,7 @@
 """
 https://django-filter.readthedocs.io/en/stable/
 """
+
 import operator
 import re
 from functools import reduce

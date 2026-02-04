@@ -1,3 +1,4 @@
+from logging import getLogger
 from pathlib import Path
 
 from django.contrib.auth.models import Permission
@@ -9,8 +10,6 @@ from rest_framework.response import Response
 
 from . import paginations, permissions, storages, utils
 from .settings import apibase_settings
-from logging import getLogger
-
 
 logger = getLogger()
 

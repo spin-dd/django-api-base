@@ -5,7 +5,7 @@ from django.core import serializers
 from django.core.files.base import ContentFile
 
 
-class Zipball(object):
+class Zipball:
     def __init__(self):
         self.in_memory_zip = BytesIO()
 
@@ -43,5 +43,5 @@ class Zipball(object):
 
 class ModelZipball(Zipball):
     def append_query(self, queryset):
-        file_name = "{}.{}.json".format(queryset.model._meta.app_label, queryset.model._meta.model_name)
+        file_name = f"{queryset.model._meta.app_label}.{queryset.model._meta.model_name}.json"
         return self.append(file_name, serializers.serialize("json", queryset))
