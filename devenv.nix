@@ -28,6 +28,10 @@
     pkgs.ruff
     pkgs.nixfmt-rfc-style
     pkgs.treefmt
+
+    # LSP / Type Checker
+    pkgs.basedpyright
+
   ];
 
   # mysqlclient ビルド用の環境変数
@@ -36,8 +40,8 @@
     MYSQLCLIENT_LDFLAGS = "-L${pkgs.libmysqlclient}/lib/mariadb -lmariadb";
   };
 
-  # pre-commit hooks
-  pre-commit.hooks = {
+  # git hooks
+  git-hooks.hooks = {
     ruff.enable = true;
     ruff-format.enable = true;
     nixfmt-rfc-style.enable = true;
