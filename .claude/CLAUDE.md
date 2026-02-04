@@ -1,0 +1,54 @@
+# Django API Base - Claude Code Context
+
+## Commands
+
+```bash
+# Django shell (with shell_plus)
+poetry run python web/manage.py shell_plus -c "..."
+
+# Tests
+poetry run pytest
+
+# Lint
+ruff check .
+ruff check . --fix  # auto-fix
+
+# Format
+ruff format .
+
+# Format all (nix + python)
+treefmt
+
+# Pre-commit hooks
+pre-commit run --all
+```
+
+## Code Style
+
+- Line length: 119
+- Python: 3.9+
+- Quotes: double
+- Import style: grouped (first-party = apibase)
+- Type hints: mypy strict mode enabled
+
+## Project Structure
+
+- `apibase/` - Main package (REST + GraphQL)
+- `apibase/graphql/` - Graphene-Django integration
+- `apibase/tests/` - Test base classes and factories
+- `tests/` - Project-level tests
+
+## Testing
+
+- Framework: pytest
+- Base class: `apibase.tests.tests.RestTestCase`
+- Factories: `apibase.tests.factories.FixtureMixin`
+- GraphQL queries: use `self.graphql(path, **params)`
+- Fixtures: `{app_label}/tests/fixtures/{name}.{json,yml,graphql}`
+
+## Key Patterns
+
+- REST: DRF viewsets with custom routers
+- GraphQL: Graphene-Django with Relay connections
+- Settings: DRF-style custom settings handler
+- WebSocket: Django Channels support

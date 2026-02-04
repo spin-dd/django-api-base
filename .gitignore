@@ -66,3 +66,17 @@ bin/schemaspy
 
 .env
 codebuild_build.sh
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+
+# claude code
+CLAUDE.local.md
+.claude/settings.local.json
