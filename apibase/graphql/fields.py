@@ -1,4 +1,5 @@
 # https://docs.graphene-python.org/projects/django/en/latest/queries/
+from django.db.models import QuerySet
 from django_filters.utils import get_field_parts
 from graphene_django.filter import DjangoFilterConnectionField
 
