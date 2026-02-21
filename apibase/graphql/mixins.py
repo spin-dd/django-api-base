@@ -56,7 +56,8 @@ class SummaryMixin(object):
 
     def resolve_records(self, info, **kwargs):
         if isinstance(self.iterable, QuerySet):
-            # TODO: each models may have it own countable criteria
-            return self.iterable.order_by("id").distinct().count()
+            if self.iterable.query.distinct:
+                return self.iterable.values("pk").count()
+            return self.iterable.order_by("id").count()
 
         return self.length

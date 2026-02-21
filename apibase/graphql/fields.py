@@ -35,6 +35,17 @@ class NodeSet(DjangoFilterConnectionField):
         # args: GraphQL Query
         # iterable: QuerySet
 
+        from graphene_django.fields import maybe_queryset
+
+        iterable = maybe_queryset(iterable)
+
+        # Optimize COUNT for distinct querysets:
+        # SELECT COUNT(*) FROM (SELECT DISTINCT all_columns...) is very slow.
+        # Use values("pk").count() instead which produces COUNT(DISTINCT pk).
+        if isinstance(iterable, QuerySet) and iterable.query.distinct:
+            _optimized_count = iterable.values("pk").count()
+            iterable.count = lambda: _optimized_count
+
         connection = super().resolve_connection(connection, args, iterable, *nargs, **kwargs)
 
         start_offset = utils.resolve_start_offset(0, args.get("after"))
