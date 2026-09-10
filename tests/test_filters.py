@@ -144,6 +144,36 @@ def test_make_related_filterset_forwards_the_method_policy():
     assert "parent__name__contains" in related.base_filters
 
 
+def test_make_related_filterset_still_accepts_a_relation_named_methods():
+    # ``methods`` is a plausible relation name (payment methods, delivery methods),
+    # and it was a usable prefix before the policy kwarg existed.
+    related = make_related_filterset("_Related", methods=_CloneSourceFilter)
+
+    assert "methods__name__contains" in related.base_filters
+    assert "methods__named_like" in related.base_filters
+
+
+def test_make_related_filterset_keeps_the_methods_prefix_alongside_other_relations():
+    related = make_related_filterset("_Related", methods=_CloneSourceFilter, other=_CloneSourceFilter)
+
+    assert "methods__name__contains" in related.base_filters
+    assert "other__name__contains" in related.base_filters
+
+
+def test_make_related_filterset_keeps_a_methods_prefix_in_the_order_it_was_written():
+    # Prefix order is the order the cloned filters are applied in, so pulling the
+    # policy out of the keywords must not move a prefix that happens to be named
+    # after it to the end.
+    keys = list(make_related_filterset("_Related", methods=_CloneSourceFilter, other=_CloneSourceFilter).base_filters)
+
+    assert keys.index("methods__name__contains") < keys.index("other__name__contains")
+
+
+def test_make_related_filterset_rejects_a_methods_value_that_is_neither_policy_nor_filterset():
+    with pytest.raises(TypeError, match="methods"):
+        make_related_filterset("_Related", parent=_CloneSourceFilter, methods=None)
+
+
 def test_create_related_filterset_forwards_scoping_and_method_policy():
     class _MixedSourceFilter(RelatedFilterSetMixin, _CloneSourceFilter):
         class Meta:

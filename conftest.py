@@ -6,5 +6,7 @@ import django
 from django.conf import settings
 
 if not settings.configured:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
+    # Assigned, not setdefault()-ed: a DJANGO_SETTINGS_MODULE exported in the shell for
+    # some other project would otherwise be picked up and break collection outright.
+    os.environ["DJANGO_SETTINGS_MODULE"] = "tests.settings"
     django.setup()

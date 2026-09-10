@@ -137,6 +137,11 @@ def validate_method_filters(filter_class):
     class (see `clone_filter_fields`) imports cleanly and then raises on the first
     request that uses the parameter. Assert this is empty over your own filtersets to
     turn that into a test failure.
+
+    Only the name is checked, on the class. A name that resolves to something the
+    filterset already owns (``filter_queryset``, say) passes here and still fails at
+    query time on the ``(queryset, name, value)`` signature, and a method installed on
+    the instance at ``__init__`` time is reported even though it would resolve.
     """
     filters = {
         **getattr(filter_class, "declared_filters", {}),
@@ -255,7 +260,29 @@ def clone_filter_fields(filter_class, prefix, distinct=None, fields=None, exclud
     }
 
 
-def make_related_filterset(type_name, distinct=True, base_filters=None, methods="keep", **related_filters):
+def make_related_filterset(type_name, distinct=True, base_filters=None, **related_filters):
+    """Build a filterset from ``prefix=filter_class`` pairs, one clone per prefix.
+
+    ``methods=<policy>`` sets the `clone_filter_fields` policy for every prefix.
+    ``methods`` is also a plausible relation name, so a *filterset* passed there stays
+    a prefix — at the cost of not being able to set the policy in the same call. It is
+    read out of the keyword arguments rather than declared as a parameter so that the
+    remaining prefixes keep the order they were written in: that order is the order the
+    cloned filters are applied in. ``type_name`` / ``distinct`` / ``base_filters`` are
+    reserved outright; a relation named after one of those has to go through
+    `clone_filter_fields` directly.
+    """
+    methods = "keep"
+    if "methods" in related_filters:
+        policy = related_filters["methods"]
+        if isinstance(policy, str):
+            methods = related_filters.pop("methods")
+        elif not isinstance(policy, type):
+            raise TypeError(
+                f"make_related_filterset() got methods={policy!r}; expected one of "
+                f"{CLONE_METHOD_POLICIES} (the clone policy) or a filterset class (a relation prefix)."
+            )
+
     base_filters = base_filters or (BaseFilter,)
     fields = reduce(
         lambda a, b: {**a, **b},
@@ -270,6 +297,14 @@ def make_related_filterset(type_name, distinct=True, base_filters=None, methods=
 class RelatedFilterSetMixin:
     @classmethod
     def create_related_filterset(cls, related_name, fields=None, exclude=None, methods="keep"):
+        """Clone this filterset's filters under ``related_name`` onto a bare FilterSet.
+
+        The generated class carries no methods of its own, so a *string* ``method``
+        cloned into it can never resolve: under the default ``methods='keep'`` it
+        raises `AssertionError` on the first request that uses the parameter. That is
+        the existing behaviour and it at least fails loudly, but pass ``'drop'`` to
+        leave those filters out, or ``'error'`` to be told at import time.
+        """
         cloned = clone_filter_fields(cls, related_name, fields=fields, exclude=exclude, methods=methods)
         return type(f"RelatedFilter_{related_name}", (django_filters.FilterSet,), cloned)
 
