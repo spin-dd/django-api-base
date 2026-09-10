@@ -88,7 +88,7 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
     def __init__(self, instance=None, data=empty, **kwargs):
         super().__init__(instance=instance, data=data, **kwargs)
-        self._actions = dict((k, v(self)) for k, v in self.action_handlers.items())
+        self._actions = {k: v(self) for k, v in self.action_handlers.items()}
 
     def _get_action(self, name):
         action = self._actions.get(name, None) or self._actions.get("*", None)
@@ -149,7 +149,7 @@ class BaseModelSerializer(serializers.ModelSerializer):
         if self.nested_fields:
             if isinstance(data, QueryDict):
                 return self.run_validation_querydict(data=data)
-            self._children_set = dict((i, data.pop(i, None)) for i in self.nested_fields)
+            self._children_set = {i: data.pop(i, None) for i in self.nested_fields}
 
         return super().run_validation(data=data)
 
@@ -216,7 +216,7 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
     def validated_children_set(self, validated_data):
         children_set = getattr(self, "_children_set", [])
-        children_set = children_set or dict((i, validated_data.pop(i, [])) for i in self.nested_fields)
+        children_set = children_set or {i: validated_data.pop(i, []) for i in self.nested_fields}
         return children_set
 
     def update(self, instance, validated_data):

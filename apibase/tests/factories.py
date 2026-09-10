@@ -91,13 +91,13 @@ class FixtureMixin:
         fixture = cls.load_fixture(name)
         model_name = cls._meta.model._meta.model_name
         if listkey in fixture:
-            return list(map(lambda i: cls.create(**{**i[model_name], **kwargs}), fixture[listkey]))
+            return [cls.create(**{**i[model_name], **kwargs}) for i in fixture[listkey]]
         else:
             return cls.create(**{**fixture[model_name], **kwargs})
 
     @classmethod
     def create_from_list(cls, items, **params):
-        return list(map(lambda i: cls.create(**params, **i), items))
+        return [cls.create(**params, **i) for i in items]
 
     @classmethod
     def reset_sequence_by_id(cls):

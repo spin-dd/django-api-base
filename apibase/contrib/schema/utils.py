@@ -35,7 +35,7 @@ def import_groups(path):
     for edge in data["group_set"]["edges"]:
         group, _ = models.Group.objects.get_or_create(name=edge["node"]["name"])
         for edge2 in edge["node"]["permissions"]["edges"]:
-            defaults = dict(name=edge2["node"]["name"])
+            defaults = {"name": edge2["node"]["name"]}
             content_type = models.ContentType.objects.filter(**edge2["node"]["content_type"]).first()
             if content_type:
                 permission, _ = models.Permission.objects.update_or_create(

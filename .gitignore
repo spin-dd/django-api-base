@@ -80,3 +80,4 @@ devenv.local.yaml
 # claude code
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/worktrees/

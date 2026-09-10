@@ -60,7 +60,7 @@ class DownloadMixin:
             disposition = utils.to_content_disposition(self.get_download_filefield_name(instance, field))
         except Exception as e:
             logger.error(f"DownloadMixin.response_field_data:{e}")
-            raise Http404
+            raise Http404 from e
 
         res = self.create_download_filefield_response(request, instance, field, format=format)
         res["Content-Disposition"] = disposition
@@ -148,7 +148,7 @@ class BaseModelViewSet(viewsets.ModelViewSet, ViewSetMixin, DownloadMixin):
     @cached_property
     def label_map(self):
         fields = getattr(self, "_fields", {})
-        return dict((name, f.label) for name, f in fields.items())
+        return {name: f.label for name, f in fields.items()}
 
     def get_renderer_context(self):
         """(override)"""
@@ -168,7 +168,7 @@ class BaseModelViewSet(viewsets.ModelViewSet, ViewSetMixin, DownloadMixin):
         context["header"] = self.request.GET[fields_query].split(",") if fields_query in self.request.GET else None
 
         context["labels"] = (
-            dict((i, self.label_map.get(i, i)) for i in context["header"]) if context["header"] else self.label_map
+            {i: self.label_map.get(i, i) for i in context["header"]} if context["header"] else self.label_map
         )
 
         return context
