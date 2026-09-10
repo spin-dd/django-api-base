@@ -283,6 +283,11 @@ def make_related_filterset(type_name, distinct=True, base_filters=None, **relate
                 f"{CLONE_METHOD_POLICIES} (the clone policy) or a filterset class (a relation prefix)."
             )
 
+    # Checked here as well as in the clone, so that an unusable policy is reported even
+    # when popping it left no prefix for `clone_filter_fields` to be reached through.
+    if methods not in CLONE_METHOD_POLICIES:
+        raise ValueError(f"make_related_filterset() got methods={methods!r}; expected one of {CLONE_METHOD_POLICIES}.")
+
     base_filters = base_filters or (BaseFilter,)
     fields = reduce(
         lambda a, b: {**a, **b},

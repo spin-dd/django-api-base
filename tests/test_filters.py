@@ -174,6 +174,20 @@ def test_make_related_filterset_rejects_a_methods_value_that_is_neither_policy_n
         make_related_filterset("_Related", parent=_CloneSourceFilter, methods=None)
 
 
+@pytest.mark.parametrize(
+    "related",
+    [
+        pytest.param({"parent": _CloneSourceFilter}, id="with-another-prefix"),
+        # Popping the policy leaves no prefix at all, so nothing reaches the clone:
+        # the policy still has to be reported rather than an internal reduce() error.
+        pytest.param({}, id="as-the-only-keyword"),
+    ],
+)
+def test_make_related_filterset_rejects_an_unknown_policy(related):
+    with pytest.raises(ValueError, match="maybe"):
+        make_related_filterset("_Related", methods="maybe", **related)
+
+
 def test_create_related_filterset_forwards_scoping_and_method_policy():
     class _MixedSourceFilter(RelatedFilterSetMixin, _CloneSourceFilter):
         class Meta:
