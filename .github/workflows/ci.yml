@@ -29,7 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - id: setup-python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -39,11 +40,14 @@ jobs:
       - name: Use an in-project virtualenv
         run: poetry config virtualenvs.in-project true
 
+      # setup-python の出力 (パッチ版まで) をキーに含める。`matrix.python-version`
+      # (= "3.10") だと runner イメージが 3.10.21 → 3.10.22 に上がってもキーが変わらず、
+      # 消えたインタプリタを指す .venv がそのまま復元されて以後ずっと失敗する。
       - name: Cache virtualenv
         uses: actions/cache@v6
         with:
           path: .venv
-          key: venv-test-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+          key: venv-test-${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
 
       # lock を正とする。--no-update 相当の解決しか行わせない。
       - name: Install dependencies
@@ -58,7 +62,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - id: setup-python
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -68,13 +73,17 @@ jobs:
       - name: Use an in-project virtualenv
         run: poetry config virtualenvs.in-project true
 
+      # Python の版をキーに入れないと、上の python-version を変えてもキャッシュが
+      # 効いてしまい、古い Python 用の .venv がそのまま使われる。poetry は再利用する
+      # in-project venv を pyproject の `^3.9` としか照合しないので黙って通る。
       - name: Cache virtualenv
         uses: actions/cache@v6
         with:
           path: .venv
-          key: venv-lint-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          key: venv-lint-${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
 
-      # ruff はロック版 (0.9.10)。ローカルの devenv と同じ版で判定させる。
+      # ruff は poetry.lock の版 (0.9.10)。devenv の git-hooks / treefmt は PATH の
+      # `pkgs.ruff` (nixpkgs 由来で別版) を使うため、ローカルと CI の判定は一致しない。
       - name: Install dev dependencies
         run: poetry install --no-interaction --only dev --no-root
 
