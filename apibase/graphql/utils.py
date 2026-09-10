@@ -9,5 +9,5 @@ def strip_relay(obj, recursive=False):
                 return [i["node"] for i in obj["edges"]]
             return [strip_relay(i["node"], recursive=recursive) for i in obj["edges"]]
 
-        return dict((k, strip_relay(v, recursive=recursive)) for k, v in obj.items())
+        return {k: strip_relay(v, recursive=recursive) for k, v in obj.items()}
     return obj

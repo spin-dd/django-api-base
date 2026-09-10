@@ -23,8 +23,8 @@ def import_from_string(val, setting_name):
     try:
         return import_string(val)
     except ImportError as e:
-        msg = "Could not import '%s' for API setting '%s'. %s: %s." % (val, setting_name, e.__class__.__name__, e)
-        raise ImportError(msg)
+        msg = f"Could not import '{val}' for API setting '{setting_name}'. {e.__class__.__name__}: {e}."
+        raise ImportError(msg) from e
 
 
 class Settings:
@@ -38,7 +38,7 @@ class Settings:
 
     def __getattr__(self, attr):
         if attr not in self.defaults:
-            raise AttributeError("Invalid API setting: '%s'" % attr)
+            raise AttributeError(f"Invalid API setting: '{attr}'")
 
         val = self.user_settings.get(attr, None)
         val_default = self.defaults.get(attr, None)
@@ -61,6 +61,6 @@ class Settings:
     def create(cls, name, default_tuple):
         return cls(
             getattr(dj_settings, name, None),
-            dict((i[0], i[1][1]) for i in default_tuple),
+            {i[0]: i[1][1] for i in default_tuple},
             [i[0] for i in default_tuple if i[1][0]],
         )

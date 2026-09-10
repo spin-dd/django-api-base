@@ -56,7 +56,7 @@ def query_params(model_or_instance, name=None, object_name=None, id=None, **para
     vars = dict(**params)
     if id:
         vars["id"] = to_gql_relay_id(model_or_instance._meta.object_name, id)
-    return dict(
-        query=source,
-        variables=vars,
-    )
+    return {
+        "query": source,
+        "variables": vars,
+    }

@@ -28,7 +28,7 @@ class LocalPathResolver:
     def create_path(self, filename, instance=None, **kwargs):
         path = Path(filename)
         today = tz.now().strftime("%Y-%m-%d")
-        return "%s/%s%s" % (today, ulid.new().str, path.suffix)
+        return f"{today}/{ulid.new().str}{path.suffix}"
 
     def resolve_content_type(self, instance):
         content_type = ContentType.objects.get_for_model(instance)
