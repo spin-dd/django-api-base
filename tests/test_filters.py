@@ -350,3 +350,40 @@ def test_make_related_filterset_still_rejects_fields_and_exclude_together():
 def test_make_related_filterset_still_rejects_an_unknown_field_name():
     with pytest.raises(ValueError, match="nonexistent"):
         make_related_filterset("_Related", parent=(_CloneSourceFilter, {"fields": ["nonexistent"]}))
+
+
+def test_make_related_filterset_rejects_a_class_that_is_not_a_filterset():
+    # The likely slip is passing the model where its filterset belongs; without a
+    # check that surfaces as AttributeError from inside the clone.
+    with pytest.raises(TypeError, match="expected a filterset class"):
+        make_related_filterset("_Related", parent=Parent)
+
+
+def test_make_related_filterset_accepts_a_duck_typed_filterset():
+    # `clone_filter_fields` only reads these two attributes, so a class that has them
+    # has always worked and must keep working.
+    duck = type("_Duck", (), {"declared_filters": {}, "base_filters": {}})
+
+    assert make_related_filterset("_Related", parent=duck).base_filters is not None
+
+
+def test_make_related_filterset_names_the_prefix_in_a_per_prefix_policy_error():
+    with pytest.raises(ValueError, match="for parent"):
+        make_related_filterset(
+            "_Related",
+            other=_CloneSourceFilter,
+            parent=(_CloneSourceFilter, {"methods": "maybe"}),
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        pytest.param({}, id="no-keywords"),
+        # The policy is not a relation, so popping it can leave nothing behind.
+        pytest.param({"methods": "drop"}, id="only-the-policy"),
+    ],
+)
+def test_make_related_filterset_rejects_a_call_with_no_relation(kwargs):
+    with pytest.raises(TypeError, match="at least one prefix"):
+        make_related_filterset("_Related", **kwargs)
