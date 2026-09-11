@@ -66,10 +66,12 @@
     # nixpkgs 側と lock を突き合わせる。PATH の ruff と比べても lock 同士の比較に
     # なって永久に発火しない。
     # direnv はサブディレクトリに cd しただけでも .envrc を再実行するため、cwd では
-    # なくリポジトリルートの lock を見る (cwd 相対だと最も普通の経路で黙る)。
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-    lock_file="$repo_root/poetry.lock"
-    if [ -n "$repo_root" ] && [ -f "$lock_file" ]; then
+    # なくプロジェクトルートの lock を見る (cwd 相対だと最も普通の経路で黙る)。
+    # git は使わない。このシェルの /usr/bin/git は xcrun のシムで、実機では
+    # "error: tool 'git' not found" になり、ガードが黙ってスキップされる。
+    lock_file="''${DEVENV_ROOT:-.}/poetry.lock"
+    [ -f "$lock_file" ] || lock_file=poetry.lock
+    if [ -f "$lock_file" ]; then
       lock_ruff=$(grep -A1 '^name = "ruff"$' "$lock_file" | sed -n 's/^version = "\(.*\)"$/\1/p')
       nix_ruff=$(${pkgs.ruff}/bin/ruff --version 2>/dev/null | cut -d' ' -f2)
       if [ -n "$lock_ruff" ] && [ -n "$nix_ruff" ] && [ "$lock_ruff" != "$nix_ruff" ]; then
