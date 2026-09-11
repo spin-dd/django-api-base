@@ -3,12 +3,15 @@ from django.http import HttpResponse
 from graphene_django import settings, views
 from graphql.utils import schema_printer
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
+
+from apibase.permissions import IsAuthenticatedOrOptions
 
 
 def _decorate(view):
-    view = permission_classes((IsAuthenticated,))(view)
+    # Not IsAuthenticated: that would also reject OPTIONS, which DRF routes here
+    # regardless of the method list below. See IsAuthenticatedOrOptions.
+    view = permission_classes((IsAuthenticatedOrOptions,))(view)
     view = authentication_classes(api_settings.DEFAULT_AUTHENTICATION_CLASSES)(view)
     return api_view(["GET", "POST"])(view)
 

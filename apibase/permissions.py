@@ -57,3 +57,26 @@ class Permission(permissions.IsAuthenticated):
         if not self.PRIVATE or user.is_staff or user.has_perm(permcode):
             return True
         return False
+
+
+class IsAuthenticatedOrOptions(permissions.IsAuthenticated):
+    """`IsAuthenticated`, but never challenges OPTIONS.
+
+    DRF checks permissions before it picks a handler: `APIView.dispatch` calls
+    `initial()` — which runs `perform_authentication` then `check_permissions` —
+    and only afterwards looks up the method handler. So plain `IsAuthenticated`
+    rejects an unauthenticated OPTIONS before `APIView.options` ever runs, and
+    the endpoint cannot be discovered without credentials. RFC 7231 §4.3.7
+    describes OPTIONS as a capability probe, so requiring auth for it is wrong.
+
+    Note this only relaxes the *permission* check. `perform_authentication`
+    still runs first, so an authenticator that raises on bad credentials
+    (token/JWT flavours) keeps failing OPTIONS requests that carry a broken
+    credential. Credential-less probes — the case this exists for — are
+    unaffected, since the default authenticators return `None` rather than raise.
+    """
+
+    def has_permission(self, request, view):
+        if request.method == "OPTIONS":
+            return True
+        return super().has_permission(request, view)
