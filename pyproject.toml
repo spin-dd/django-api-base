@@ -21,7 +21,10 @@ urllib3 = "^1.26.16"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
-ruff = "^0.9"
+# devenv の `pkgs.ruff` と同じ版に固定する。ローカルの treefmt / git-hooks と CI が
+# 別版の ruff で判定すると整形結果が食い違う (#27)。devenv.lock を更新したら
+# nixpkgs 側の版を確認して合わせること。
+ruff = "0.14.9"
 mypy = "^1.0"
 
 [build-system]
