@@ -10,7 +10,7 @@ poetry run python web/manage.py shell_plus -c "..."
 poetry run pytest
 
 # Type check
-poetry run mypy apibase tests
+poetry run mypy apibase tests conftest.py
 
 # Lint
 ruff check .
