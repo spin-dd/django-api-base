@@ -82,8 +82,10 @@ jobs:
           path: .venv
           key: venv-lint-${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
 
-      # ruff は poetry.lock の版 (0.9.10)。devenv の git-hooks / treefmt は PATH の
-      # `pkgs.ruff` (nixpkgs 由来で別版) を使うため、ローカルと CI の判定は一致しない。
+      # ruff は poetry.lock の版。ローカルの treefmt も PATH 経由で同じ .venv の
+      # ruff を使うので一致する。git-hooks だけは nixpkgs の ruff を直接叩くため、
+      # lock を nixpkgs と同じ版に固定してある (#27)。ずれたときは devenv の
+      # enterShell が入室時に警告する。
       - name: Install dev dependencies
         run: poetry install --no-interaction --only dev --no-root
 
