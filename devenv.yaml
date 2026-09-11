@@ -1,5 +1,13 @@
 # yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
 inputs:
+  # devenv.nix が git-hooks.hooks を使うので、input の宣言が要る。
+  # 宣言が無いと devenv は lock から git-hooks ノードを削除したうえで
+  # assertion に落ちる (#31)。
+  git-hooks:
+    url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
   nixpkgs-python:
