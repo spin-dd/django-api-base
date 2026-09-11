@@ -26,7 +26,7 @@ class _CloneSourceFilter(BaseFilter):
 
     class Meta:
         model = Parent
-        fields = []
+        fields: list[str] = []
 
     def filter_named_like(self, queryset, name, value):
         return queryset.filter(**{f"{name}__contains": value})

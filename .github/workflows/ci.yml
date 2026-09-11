@@ -94,3 +94,39 @@ jobs:
 
       - name: ruff format --check
         run: poetry run ruff format --check .
+
+  typecheck:
+    name: mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # ロック版の Django は 3.2.25 で 3.11+ では動かない。mypy は設定の
+      # `python_version` で 3.9 を対象にするが、依存を実際に import 解決させるため
+      # インタプリタもロックが想定する版に合わせる。
+      - id: setup-python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+
+      - name: Install Poetry
+        run: pipx install "poetry==${{ env.POETRY_VERSION }}"
+
+      - name: Use an in-project virtualenv
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache virtualenv
+        uses: actions/cache@v6
+        with:
+          path: .venv
+          key: venv-mypy-${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
+
+      # dev だけでは django / DRF が入らず、import が解決できないぶん検査が甘くなる。
+      # 本体の依存ごと入れて、ローカル (devenv) と同じ条件で判定する。
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      # ルートの conftest.py も対象に含める。`apibase tests` だけだと、pytest の
+      # Django セットアップを担うこのファイルが検査されない。
+      - name: mypy
+        run: poetry run mypy apibase tests conftest.py

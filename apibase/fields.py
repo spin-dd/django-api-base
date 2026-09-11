@@ -1,5 +1,6 @@
 import calendar
 from datetime import date
+from typing import Any, Callable
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -9,7 +10,8 @@ from django_filters.widgets import SuffixedMultiWidget
 
 
 class ListFieldMixin:
-    converter = str
+    # サブクラスが int などに差し替えるので、str に推論させない。
+    converter: Callable[[Any], Any] = str
 
     def to_python_value(self, value):
         if not value:
