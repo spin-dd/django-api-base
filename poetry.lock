@@ -2365,6 +2365,58 @@ docs = ["furo (>=2024.7.0)", "linkify-it-py (>=2.0.0)", "myst-parser (>=2.0)", "
 twisted = ["twisted (>=22.10.0)", "zope-interface (>=5.2.0)"]
 
 [[package]]
+name = "types-pyyaml"
+version = "6.0.12.20250915"
+description = "Typing stubs for PyYAML"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+markers = "python_full_version < \"3.14.0\" or platform_python_implementation == \"PyPy\""
+files = [
+    {file = "types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6"},
+    {file = "types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3"},
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+description = "Typing stubs for PyYAML"
+optional = false
+python-versions = ">=3.10"
+groups = ["dev"]
+markers = "python_full_version >= \"3.14.0\" and platform_python_implementation != \"PyPy\""
+files = [
+    {file = "types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b"},
+    {file = "types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212"},
+]
+
+[[package]]
+name = "types-six"
+version = "1.17.0.20251009"
+description = "Typing stubs for six"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+markers = "python_full_version < \"3.14.0\" or platform_python_implementation == \"PyPy\""
+files = [
+    {file = "types_six-1.17.0.20251009-py3-none-any.whl", hash = "sha256:2494f4c2a58ada0edfe01ea84b58468732e43394c572d9cf5b1dd06d86c487a3"},
+    {file = "types_six-1.17.0.20251009.tar.gz", hash = "sha256:efe03064ecd0ffb0f7afe133990a2398d8493d8d1c1cc10ff3dfe476d57ba44f"},
+]
+
+[[package]]
+name = "types-six"
+version = "1.17.0.20260724"
+description = "Typing stubs for six"
+optional = false
+python-versions = ">=3.10"
+groups = ["dev"]
+markers = "python_full_version >= \"3.14.0\" and platform_python_implementation != \"PyPy\""
+files = [
+    {file = "types_six-1.17.0.20260724-py3-none-any.whl", hash = "sha256:5076f03667e21f77b45c029c0aba0a4f5f0f0472c27fc102c8ec7bb68206ecf4"},
+    {file = "types_six-1.17.0.20260724.tar.gz", hash = "sha256:d7abfa82d40eb7dfbb6356c5b1abb4ddc87e0854515a213512e6be98c5d6bc02"},
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -2779,4 +2831,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "38984923540437b5b0efea8cdb9c0c90bce2ea0a8716c4c0e5a80792c7f617bf"
+content-hash = "22bdb23c3654ac248292906031f54a8be7cf1c94e1c60dcb73d2be6e10836204"

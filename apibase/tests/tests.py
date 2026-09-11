@@ -12,7 +12,7 @@ User = get_user_model()
 
 
 class RestTestCase(TransactionTestCase):
-    default_perms = []
+    default_perms: list[str] = []
 
     def setUp(self):
         self.debug_print = False

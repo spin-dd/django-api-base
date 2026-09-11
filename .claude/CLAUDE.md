@@ -9,6 +9,9 @@ poetry run python web/manage.py shell_plus -c "..."
 # Tests
 poetry run pytest
 
+# Type check
+poetry run mypy apibase tests
+
 # Lint
 ruff check .
 ruff check . --fix  # auto-fix
@@ -29,7 +32,7 @@ pre-commit run --all
 - Python: 3.9+
 - Quotes: double
 - Import style: grouped (first-party = apibase)
-- Type hints: mypy strict mode enabled
+- Type hints: mypy enforced in CI (not strict; see `[tool.mypy]` in pyproject.toml)
 
 ## Project Structure
 

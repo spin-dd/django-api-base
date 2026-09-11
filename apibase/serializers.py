@@ -1,5 +1,6 @@
 import inspect
 import re
+from typing import Any
 
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -81,10 +82,10 @@ class BaseModelSerializer(serializers.ModelSerializer):
     urn = UrnField()
     display = DisplayField()
 
-    nested_fields = []
+    nested_fields: list[str] = []
     nested_fields_updateds_signal = None
 
-    action_handlers = {}
+    action_handlers: dict[str, Any] = {}
 
     def __init__(self, instance=None, data=empty, **kwargs):
         super().__init__(instance=instance, data=data, **kwargs)
