@@ -32,6 +32,10 @@
     # LSP / Type Checker
     pkgs.basedpyright
 
+    # git-hooks の install タスクが git を呼ぶ。macOS の /usr/bin/git は
+    # xcrun のシムで、このシェルからは "tool 'git' not found" になる (#31)。
+    pkgs.git
+
   ];
 
   # mysqlclient ビルド用の環境変数
@@ -49,14 +53,16 @@
 
   enterShell = ''
     echo "Python $(python --version | cut -d' ' -f2)"
-    echo "poetry $(poetry --version | cut -d' ' -f3)"
+    # `poetry --version` は "Poetry (version 2.2.1)" なので、閉じ括弧を落とす。
+    echo "poetry $(poetry --version | tr -d '()' | cut -d' ' -f3)"
     echo "mariadb_config: $(which mariadb_config)"
     echo ""
     echo "Commands:"
     echo "  treefmt               # format all (nix, python)"
     echo "  ruff check .          # lint"
     echo "  ruff format .         # format python"
-    echo "  pre-commit run --all  # run all hooks"
+    # devenv の git-hooks は prek で実行される (pre-commit コマンドは入らない)。
+    echo "  prek run --all-files  # run all hooks"
 
     # git-hooks の ruff だけは nixpkgs の store path を直接叩く
     # (git-hooks.nix: entry = "''${hooks.ruff.package}/bin/ruff check --fix")。
