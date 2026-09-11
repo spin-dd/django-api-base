@@ -28,8 +28,11 @@ pytest = "^7.0.0"
 ruff = "0.14.9"
 mypy = "^1.0"
 # mypy が解決できない依存の型スタブ。無いと import-untyped で落ちる。
-types-PyYAML = "*"
-types-six = "*"
+# 版を固定する。`*` にすると lock が Python 3.14 境界の marker 付き 2 エントリに
+# 分かれ、CI のジョブごとに別版が入る（実際 3.10 のジョブに 3.14 向けが入っていた）。
+# このプロジェクトの実効上限は 3.10 なので、3.14 側の枝は要らない。
+types-PyYAML = "6.0.12.20250915"
+types-six = "1.17.0.20251009"
 
 [build-system]
 requires = ["poetry>=1.0.0"]
