@@ -69,6 +69,23 @@ class ListIntegerInFilter(ListCharInFilter):
     field_class = ListIntegerField
 
 
+def _explicit_verbose_name(field):
+    """Return ``field.verbose_name``, but only when the model actually declared one.
+
+    Django fills ``verbose_name`` in from the attribute name for any field that does
+    not declare one (``Field.set_attributes_from_name``), so a bare field hands us
+    "created at" -- and adopting that would *replace* django-filter's own "Created at"
+    with a worse label on every field in the project. Comparing against the derived
+    form is how the two are told apart; a field that explicitly declares exactly the
+    derived string is indistinguishable, and losing that case costs nothing.
+    """
+    verbose_name = getattr(field, "verbose_name", None)
+    name = getattr(field, "name", None)
+    if not verbose_name or not name:
+        return None
+    return None if verbose_name == name.replace("_", " ") else verbose_name
+
+
 class BaseFilter(django_filters.FilterSet):
     pk = django_filters.NumberFilter(field_name="id")
 
@@ -84,9 +101,21 @@ class BaseFilter(django_filters.FilterSet):
 
         if lookup_type == "exact" and filter_class == django_filters.ChoiceFilter:
             if isinstance(field, IntegerField):
-                # print(field)
                 filter_class = IntFilter
                 param = {}
+
+        if filter_class is not None and lookup_type == "exact":
+            # モデルフィールドの説明を exact フィルタのラベル / ヘルプに引き継ぐ。
+            # setdefault なのは Meta.filter_overrides の extra が明示した値を勝たせるため。
+            # str() は掛けない。verbose_name / help_text が gettext_lazy のとき、
+            # FilterSet は import 時にメタクラスで組み立てられるので、ここで評価すると
+            # そのときのロケールに翻訳が固定される。lazy のまま渡せば描画時に評価される。
+            verbose_name = _explicit_verbose_name(field)
+            if verbose_name:
+                param.setdefault("label", verbose_name)
+
+            if getattr(field, "help_text", None):
+                param.setdefault("help_text", field.help_text)
 
         return filter_class, param
 
@@ -226,6 +255,11 @@ def clone_filter_fields(filter_class, prefix, distinct=None, fields=None, exclud
         if isinstance(instance, WordFilter):
             params["lookups"] = [f"{prefix}__{i}" for i in instance.lookups]
             params["delimiters"] = instance.delimiters
+
+        # help_text は label と違って named argument ではなく ``extra`` に入るので、
+        # 明示的に拾わないと複製で落ちる。label だけ残って説明が消えるのを避ける。
+        if "help_text" in instance.extra:
+            params["help_text"] = instance.extra["help_text"]
 
         distinct = distinct if distinct is not None else instance.distinct
         return (
