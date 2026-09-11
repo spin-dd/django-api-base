@@ -4,6 +4,7 @@ https://django-filter.readthedocs.io/en/stable/
 
 import operator
 import re
+from collections.abc import Mapping
 from functools import reduce
 
 import django_filters
@@ -260,16 +261,95 @@ def clone_filter_fields(filter_class, prefix, distinct=None, fields=None, exclud
     }
 
 
-def make_related_filterset(type_name, distinct=True, base_filters=None, **related_filters):
-    """Build a filterset from ``prefix=filter_class`` pairs, one clone per prefix.
+CLONE_PREFIX_OPTIONS = ("fields", "exclude", "methods", "distinct")
 
-    ``methods=<policy>`` sets the `clone_filter_fields` policy for every prefix.
-    ``methods`` is also a plausible relation name, so a *filterset* passed there stays
-    a prefix — at the cost of not being able to set the policy in the same call. It is
-    read out of the keyword arguments rather than declared as a parameter so that the
-    remaining prefixes keep the order they were written in: that order is the order the
-    cloned filters are applied in. ``type_name`` / ``distinct`` / ``base_filters`` are
-    reserved outright; a relation named after one of those has to go through
+
+def _is_filterset(value):
+    """True for a filterset class, or one that walks like one.
+
+    `clone_filter_fields` only reads ``declared_filters`` / ``base_filters`` off the
+    class, so a duck-typed one has always worked and stays accepted. Checking for them
+    is what turns the likely slip — passing a *model* where its filterset belongs —
+    into a `TypeError` here instead of an `AttributeError` from inside the clone.
+    """
+    if not isinstance(value, type):
+        return False
+    if issubclass(value, django_filters.FilterSet):
+        return True
+    return hasattr(value, "declared_filters") and hasattr(value, "base_filters")
+
+
+def _is_relation(value):
+    """True for either accepted relation value: a filterset class, or ``(class, options)``."""
+    if _is_filterset(value):
+        return True
+    return isinstance(value, (tuple, list)) and len(value) == 2 and _is_filterset(value[0])
+
+
+def _relation_clone_options(prefix, value, distinct, methods):
+    """Resolve one ``prefix=<relation>`` entry into ``(filter_class, clone_kwargs)``."""
+    defaults = {"distinct": distinct, "methods": methods}
+    if _is_filterset(value):
+        return value, defaults
+
+    if not _is_relation(value):
+        raise TypeError(
+            f"make_related_filterset() got {prefix}={value!r}; expected a filterset class "
+            "or a (filterset class, options) pair."
+        )
+
+    filter_class, overrides = value
+    if not isinstance(overrides, Mapping):
+        raise TypeError(
+            f"make_related_filterset() got {prefix}=({filter_class.__name__}, {overrides!r}); "
+            "the second item holds the per-prefix options and has to be a mapping."
+        )
+
+    unknown = sorted(set(overrides) - set(CLONE_PREFIX_OPTIONS))
+    if unknown:
+        raise TypeError(
+            f"make_related_filterset() got unknown option(s) {unknown} for {prefix}; "
+            f"expected any of {list(CLONE_PREFIX_OPTIONS)}."
+        )
+
+    # The per-prefix options win: the call-wide ``distinct`` / ``methods`` are the
+    # defaults for prefixes that do not say otherwise.
+    options = {**defaults, **overrides}
+
+    # `clone_filter_fields` would reject an unusable policy too, but without saying
+    # which prefix carried it — and a call has one policy per prefix now.
+    if options["methods"] not in CLONE_METHOD_POLICIES:
+        raise ValueError(
+            f"make_related_filterset() got methods={options['methods']!r} for {prefix}; "
+            f"expected one of {CLONE_METHOD_POLICIES}."
+        )
+    return filter_class, options
+
+
+def make_related_filterset(type_name, distinct=True, base_filters=None, **related_filters):
+    """Build a filterset from ``prefix=<relation>`` pairs, one clone per prefix.
+
+    A relation is either a filterset class, or a ``(filterset class, options)`` pair
+    whose options are passed to `clone_filter_fields` for that prefix alone
+    (``fields`` / ``exclude`` / ``methods`` / ``distinct``)::
+
+        make_related_filterset(
+            "Related",
+            customer=(CustomerFilter, {"fields": ["code", "name__contains"]}),
+            order=(OrderFilter, {"exclude": ["heavy_method_filter"]}),
+            shipment=ShipmentFilter,
+        )
+
+    ``fields`` / ``exclude`` are per-prefix only — they name *source* filter keys, which
+    differ from one prefix to the next. ``methods=<policy>`` remains available as a
+    keyword and sets the policy for every prefix that does not override it.
+
+    ``methods`` is also a plausible relation name, so a relation passed there stays a
+    prefix — at the cost of not being able to set the call-wide policy in the same call.
+    It is read out of the keyword arguments rather than declared as a parameter so that
+    the remaining prefixes keep the order they were written in: that order is the order
+    the cloned filters are applied in. ``type_name`` / ``distinct`` / ``base_filters``
+    are reserved outright; a relation named after one of those has to go through
     `clone_filter_fields` directly.
     """
     methods = "keep"
@@ -277,10 +357,11 @@ def make_related_filterset(type_name, distinct=True, base_filters=None, **relate
         policy = related_filters["methods"]
         if isinstance(policy, str):
             methods = related_filters.pop("methods")
-        elif not isinstance(policy, type):
+        elif not _is_relation(policy):
             raise TypeError(
                 f"make_related_filterset() got methods={policy!r}; expected one of "
-                f"{CLONE_METHOD_POLICIES} (the clone policy) or a filterset class (a relation prefix)."
+                f"{CLONE_METHOD_POLICIES} (the clone policy), or a filterset class or "
+                "(filterset class, options) pair (a relation prefix)."
             )
 
     # Checked here as well as in the clone, so that an unusable policy is reported even
@@ -289,12 +370,18 @@ def make_related_filterset(type_name, distinct=True, base_filters=None, **relate
         raise ValueError(f"make_related_filterset() got methods={methods!r}; expected one of {CLONE_METHOD_POLICIES}.")
 
     base_filters = base_filters or (BaseFilter,)
+    relations = [
+        (prefix, _relation_clone_options(prefix, value, distinct, methods))
+        for prefix, value in related_filters.items()
+    ]
+    if not relations:
+        # reduce() over nothing raises "reduce() of empty iterable with no initial
+        # value", which says nothing about the call that caused it.
+        raise TypeError(f"make_related_filterset({type_name!r}) needs at least one prefix=<relation> keyword.")
+
     fields = reduce(
         lambda a, b: {**a, **b},
-        [
-            clone_filter_fields(filter_class, prefix, distinct=distinct, methods=methods)
-            for prefix, filter_class in related_filters.items()
-        ],
+        [clone_filter_fields(filter_class, prefix, **options) for prefix, (filter_class, options) in relations],
     )
     return type(type_name, base_filters, fields)
 
