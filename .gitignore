@@ -12,6 +12,7 @@
 .vscode
 
 # python
+.venv/
 *.egg-info
 build
 dist
