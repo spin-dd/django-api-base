@@ -26,6 +26,45 @@ treefmt
 pre-commit run --all
 ```
 
+## worktree の setup（Orca / Codex / Claude Code）
+
+新しい worktree の準備は `scripts/bootstrap-worktree.sh` の一本にまとめ、各ツールの設定から呼ぶ。
+中身は CI（`.github/workflows/ci.yml`）と同じ `poetry install --no-interaction` で、worktree ごとの
+`.venv` を作る。何度実行してもよい。
+
+| ツール | 設定 | setup が走るとき |
+| --- | --- | --- |
+| Orca | `orca.yaml` の `scripts.setup` | worktree 作成時。setup が終わってからエージェントを起動する |
+| Codex アプリ | `.codex/environments/environment.toml` | 新しいスレッドの worktree 作成時 |
+| Claude Code | `.claude/settings.json` の `SessionStart` / `SubagentStart` hook | hook はすべてのセッションと subagent の開始時に走り、`.claude/worktrees/` の下の worktree（`claude --worktree` と `isolation: worktree` の subagent）でだけ setup する |
+
+Poetry と Python の用意:
+
+- `devenv.nix` と `.envrc` があり direnv と devenv が使えるときは、`direnv allow` してから devenv の中で入れる。
+  Python 3.9・Poetry・MySQL client ライブラリは devenv が用意する。初回は devenv の評価に 1 分ほどかかる。
+  devenv が共有の git hook をこの worktree に向け直すため、setup は終了時に元の状態へ戻す（上流 cachix/devenv#2511）。
+- それ以外は uv だけを前提にし、Python 3.9 を `uv python find`（無ければ `uv python install`）、
+  Poetry 2.2.1 を `uvx --from poetry==2.2.1` で使う。
+
+どちらの経路でも呼び出し元の `VIRTUAL_ENV` を外し、`POETRY_VIRTUALENVS_IN_PROJECT=true` で
+その worktree の `.venv` に固定する（main checkout の `.venv` を書き換えないため）。
+
+Claude Code の worktree の作成と削除は Claude Code 自身に任せる。
+
+- `WorktreeCreate` hook は使わない。hook で作った worktree は、subagent の終了時にも定期の掃除でも
+  削除されず、`--worktree "#123"`（PR から作る）と `.worktreeinclude` の処理も止まるため
+- hook は git・sed と、bootstrap が使う uv（devenv 経路では direnv と devenv）しか使わない（jq は要らない）。
+  setup するのは `.claude/worktrees/` の下の worktree だけで、ほかの場所では何もせずに終わる。
+  main checkout の `.venv` は利用者が管理する。セッションのたびに入れ直すと、利用者が選んだ Python や
+  group を上書きしうる
+- `.worktreeinclude` を置くときは、リテラルのパスだけを書く。Claude Code は `.gitignore` の書式を
+  読めるが、Orca はリテラルのパスしか読めない
+
+準備は worktree ごとに作成時の 1 回だけ（Orca・Codex と同じ）。Claude Code の hook は、終わった印を
+worktree 専用の git dir に置き、以後の起動や subagent の開始では何もしない。依存（`pyproject.toml` /
+`poetry.lock`）が変わったときや、手元の worktree を後から準備するときは、その worktree で
+`bash scripts/bootstrap-worktree.sh` を実行する。
+
 ## Code Style
 
 - Line length: 119

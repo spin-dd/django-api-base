@@ -1,0 +1,9 @@
+# Orca（https://github.com/stablyai/orca）のリポジトリ設定。
+# 新しい worktree の setup は、Codex（.codex/environments/environment.toml）と
+# Claude Code（.claude/hooks/worktree_setup.sh）と同じ共通スクリプトに任せる。
+# Orca は setup をこの worktree の orca.yaml から読み、worktree の中で実行する。
+scripts:
+  setup: bash scripts/bootstrap-worktree.sh
+# 既定の start-immediately ではエージェントが setup と同時に起動し、
+# .venv ができる前に pytest を走らせうる。setup の完了を待ってから起動する。
+setupAgentStartupPolicy: wait-for-setup

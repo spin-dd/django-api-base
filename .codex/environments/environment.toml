@@ -1,0 +1,7 @@
+# Codex アプリのローカル環境。新しい worktree の中で setup.script を実行する。
+# Orca（orca.yaml）と Claude Code（.claude/hooks/worktree_setup.sh）も同じスクリプトを呼ぶ。
+version = 1
+name = "Taihei Django API Base"
+
+[setup]
+script = "bash scripts/bootstrap-worktree.sh"
