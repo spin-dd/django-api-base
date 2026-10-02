@@ -2,6 +2,7 @@ from logging import getLogger
 from pathlib import Path
 
 from django.contrib.auth.models import Permission
+from django.db import transaction
 from django.http import Http404
 from django.utils.functional import cached_property
 from django.views import static
@@ -109,6 +110,7 @@ class BaseModelViewSet(viewsets.ModelViewSet, ViewSetMixin, DownloadMixin):
             return self.create_batch(request, *args, **kwargs)
         return super().create(request, *args, **kwargs)
 
+    @transaction.atomic
     def update_batch(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
         serializer = self.get_serializer(
@@ -121,6 +123,7 @@ class BaseModelViewSet(viewsets.ModelViewSet, ViewSetMixin, DownloadMixin):
         self.perform_update(serializer)
         return Response(serializer.data)
 
+    @transaction.atomic
     def create_batch(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)

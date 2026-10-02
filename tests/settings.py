@@ -1,8 +1,7 @@
 """Minimal Django settings for the test suite.
 
-`tests/models.py` only needs a configured app registry — the filter tests apply
-filters to lazy querysets and never hit the database, so the sqlite entry exists
-just to satisfy Django's checks.
+The root conftest creates an in-memory SQLite database for the transactional
+serializer and batch API tests. The tests app has no migrations.
 """
 
 SECRET_KEY = "test"
