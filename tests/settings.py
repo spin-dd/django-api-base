@@ -1,6 +1,6 @@
 """Minimal Django settings for the test suite.
 
-The root conftest creates an in-memory SQLite database for the transactional
+The root conftest creates in-memory SQLite databases for the transactional
 serializer and batch API tests. The tests app has no migrations.
 """
 
@@ -16,7 +16,11 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": ":memory:",
-    }
+    },
+    "other": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    },
 }
 
 USE_TZ = True

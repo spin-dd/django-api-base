@@ -17,6 +17,7 @@ if not settings.configured:
 @pytest.fixture(scope="session", autouse=True)
 def test_database():
     """Create real tables for TransactionTestCase without adding pytest-django."""
+    # Remove this fixture when introducing pytest-django, which manages test databases itself.
     config = setup_databases(verbosity=0, interactive=False)
     yield
     teardown_databases(config, verbosity=0)

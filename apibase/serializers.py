@@ -4,7 +4,7 @@ from typing import Any
 
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Model
 from django.db.models.fields.reverse_related import OneToOneRel
 from django.http import QueryDict
@@ -221,19 +221,19 @@ class BaseModelSerializer(serializers.ModelSerializer):
         children_set = children_set or {i: validated_data.pop(i, []) for i in self.nested_fields}
         return children_set
 
-    @transaction.atomic
     def update(self, instance, validated_data):
-        children_set = self.validated_children_set(validated_data)
-        instance = super().update(instance, validated_data)
-        self.update_nested_fields(instance, validated_data, children_set)
-        return instance
+        with transaction.atomic(using=router.db_for_write(self.Meta.model, instance=instance)):
+            children_set = self.validated_children_set(validated_data)
+            instance = super().update(instance, validated_data)
+            self.update_nested_fields(instance, validated_data, children_set)
+            return instance
 
-    @transaction.atomic
     def create(self, validated_data):
-        children_set = self.validated_children_set(validated_data)
-        instance = super().create(validated_data)
-        self.update_nested_fields(instance, validated_data, children_set)
-        return instance
+        with transaction.atomic(using=router.db_for_write(self.Meta.model)):
+            children_set = self.validated_children_set(validated_data)
+            instance = super().create(validated_data)
+            self.update_nested_fields(instance, validated_data, children_set)
+            return instance
 
     @property
     def view_action(self):

@@ -1,7 +1,7 @@
 """A failed nested write must leave no partial database changes."""
 
 from django.db import IntegrityError
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory
@@ -66,6 +66,11 @@ class TestNestedCreate(TransactionTestCase):
         self.assertEqual(
             list(parent.child_set.order_by("id").values_list("name", flat=True)), ["first child", "second child"]
         )
+
+
+@override_settings(DATABASE_ROUTERS=["tests.routers.AtomicWritesRouter"])
+class TestRoutedNestedCreate(TestNestedCreate):
+    databases = {"default", "other"}
 
 
 class TestNestedUpdate(TransactionTestCase):
@@ -145,6 +150,43 @@ class TestNestedUpdate(TransactionTestCase):
         )
 
 
+@override_settings(DATABASE_ROUTERS=["tests.routers.AtomicWritesRouter"])
+class TestRoutedNestedUpdate(TestNestedUpdate):
+    databases = {"default", "other"}
+
+
+@override_settings(DATABASE_ROUTERS=["tests.routers.InstanceWritesRouter"])
+class TestRoutedUpdateInstanceHint(TransactionTestCase):
+    databases = {"default", "other"}
+
+    def test_child_error_restores_parent_and_children_on_the_instance_database(self):
+        parent = Parent.objects.using("other").create(name="original parent")
+        first = Child.objects.using("other").create(parent=parent, name="original first")
+        second = Child.objects.using("other").create(parent=parent, name="original second")
+        serializer = ParentSerializer(
+            parent,
+            data={
+                "name": "changed parent",
+                "child_set": [
+                    {"id": first.id, "name": "changed first"},
+                    {"id": second.id, "name": None},
+                ],
+            },
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+
+        with self.assertRaises(IntegrityError):
+            serializer.save()
+
+        parent.refresh_from_db()
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(parent.name, "original parent")
+        self.assertEqual(first.name, "original first")
+        self.assertEqual(second.name, "original second")
+
+
 class PlainParentSerializer(BaseModelSerializer):
     name = serializers.CharField(allow_null=True)
 
@@ -189,6 +231,11 @@ class TestBatchCreate(TransactionTestCase):
         self.assertEqual(list(Parent.objects.order_by("id").values_list("name", flat=True)), ["first", "second"])
 
 
+@override_settings(DATABASE_ROUTERS=["tests.routers.AtomicWritesRouter"])
+class TestRoutedBatchCreate(TestBatchCreate):
+    databases = {"default", "other"}
+
+
 class TestBatchUpdate(TransactionTestCase):
     def test_database_error_in_second_record_restores_first_record(self):
         first = Parent.objects.create(name="original first")
@@ -222,3 +269,8 @@ class TestBatchUpdate(TransactionTestCase):
         second.refresh_from_db()
         self.assertEqual(first.name, "changed first")
         self.assertEqual(second.name, "changed second")
+
+
+@override_settings(DATABASE_ROUTERS=["tests.routers.AtomicWritesRouter"])
+class TestRoutedBatchUpdate(TestBatchUpdate):
+    databases = {"default", "other"}
