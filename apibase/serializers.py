@@ -141,7 +141,12 @@ class BaseModelSerializer(serializers.ModelSerializer):
                 copied.setlist(key, value)
 
         data = copied
-        return super().run_validation(data=data)
+        validated_data = super().run_validation(data=data)
+        for name, children in self._children_set.lists():
+            validated_data[name] = (
+                children if isinstance(self.fields[name], serializers.ListSerializer) else self._children_set[name]
+            )
+        return validated_data
 
     def run_validation(self, data=empty):
         """(override)"""
@@ -153,7 +158,11 @@ class BaseModelSerializer(serializers.ModelSerializer):
                 return self.run_validation_querydict(data=data)
             self._children_set = {i: data.pop(i, None) for i in self.nested_fields}
 
-        return super().run_validation(data=data)
+        validated_data = super().run_validation(data=data)
+        if self.nested_fields:
+            # ListSerializer reuses this serializer; retain children on each result.
+            validated_data.update(self._children_set)
+        return validated_data
 
     @classmethod
     def update_or_create(cls, partial=None, id=None, context=None, **validated_data):
@@ -217,9 +226,7 @@ class BaseModelSerializer(serializers.ModelSerializer):
             )
 
     def validated_children_set(self, validated_data):
-        children_set = getattr(self, "_children_set", [])
-        children_set = children_set or {i: validated_data.pop(i, []) for i in self.nested_fields}
-        return children_set
+        return {i: validated_data.pop(i, []) for i in self.nested_fields}
 
     def update(self, instance, validated_data):
         with transaction.atomic(using=router.db_for_write(self.Meta.model, instance=instance)):
