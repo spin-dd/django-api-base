@@ -1,21 +1,62 @@
-"""Tests for `apibase.filters.clone_filter_fields` scoping and string-method handling.
-
-No database is needed: the filters are inspected as declarations, and the one test
-that applies a filter does so against a lazy queryset, so the resolution assert fires
-before any SQL.
-"""
+"""Tests for word matching and filterset cloning, scoping, and method handling."""
 
 import django_filters
 import pytest
+from django.test import TransactionTestCase
 
 from apibase.filters import (
     BaseFilter,
     RelatedFilterSetMixin,
+    WordFilter,
     clone_filter_fields,
     make_related_filterset,
     validate_method_filters,
 )
 from tests.models import Child, Parent
+
+
+class TestWordFilter(TransactionTestCase):
+    def test_halfwidth_query_matches_fullwidth_record(self):
+        parent = Parent.objects.create(name="ＡＢＣビル２号館")
+        Parent.objects.create(name="別の建物")
+
+        result = WordFilter(lookups=["name"]).filter(Parent.objects.all(), "ABCﾋﾞﾙ2号館")
+
+        self.assertEqual(list(result), [parent])
+
+    def test_fullwidth_query_matches_halfwidth_record(self):
+        parent = Parent.objects.create(name="ABCﾋﾞﾙ2号館")
+        Parent.objects.create(name="別の建物")
+
+        result = WordFilter(lookups=["name"]).filter(Parent.objects.all(), "ＡＢＣビル２号館")
+
+        self.assertEqual(list(result), [parent])
+
+    def test_space_separated_words_are_combined_with_and(self):
+        parent = Parent.objects.create(name="東京の太平ビル２号館")
+        Parent.objects.create(name="大阪の太平ビル２号館")
+        Parent.objects.create(name="東京の太平ビル３号館")
+
+        result = WordFilter(lookups=["name"]).filter(Parent.objects.all(), "ﾋﾞﾙ2 東京")
+
+        self.assertEqual(list(result), [parent])
+
+    def test_matches_a_record_typed_verbatim(self):
+        cases = [
+            ("太平ビル2号館", "太平ビル2号館"),
+            ("ABCビル", "ABCビル"),
+            ("サービス部サービス課1グループ", "サービス課1"),
+        ]
+        for stored, _ in cases:
+            Parent.objects.create(name=stored)
+        Parent.objects.create(name="別の建物")
+        word_filter = WordFilter(lookups=["name"])
+
+        results = [
+            list(word_filter.filter(Parent.objects.all(), query).values_list("name", flat=True)) for _, query in cases
+        ]
+
+        self.assertEqual(results, [[stored] for stored, _ in cases])
 
 
 class _CloneSourceFilter(BaseFilter):

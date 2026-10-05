@@ -35,7 +35,11 @@ class WordFilter(django_filters.CharFilter):
 
         def _q(lookup, val):
             key = f"{lookup}__{self.lookup_expr}"
+            # 語全体の幅変換では「太平ビル2号館」「ABCビル」のような混在値に
+            # 一致しないため、格納値どおりの入力も候補に残す。
+            # set なので、単一表記の入力では検索条件は増えない。
             vals = {
+                val,
                 jaconv.zen2han(val, ascii=True, kana=True, digit=True),
                 jaconv.han2zen(val, ascii=True, kana=True, digit=True),
             }
