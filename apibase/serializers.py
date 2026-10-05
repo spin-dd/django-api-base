@@ -4,6 +4,7 @@ from typing import Any
 
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.db import router, transaction
 from django.db.models import Model
 from django.db.models.fields.reverse_related import OneToOneRel
 from django.http import QueryDict
@@ -140,7 +141,12 @@ class BaseModelSerializer(serializers.ModelSerializer):
                 copied.setlist(key, value)
 
         data = copied
-        return super().run_validation(data=data)
+        validated_data = super().run_validation(data=data)
+        for name, children in self._children_set.lists():
+            validated_data[name] = (
+                children if isinstance(self.fields[name], serializers.ListSerializer) else self._children_set[name]
+            )
+        return validated_data
 
     def run_validation(self, data=empty):
         """(override)"""
@@ -152,7 +158,11 @@ class BaseModelSerializer(serializers.ModelSerializer):
                 return self.run_validation_querydict(data=data)
             self._children_set = {i: data.pop(i, None) for i in self.nested_fields}
 
-        return super().run_validation(data=data)
+        validated_data = super().run_validation(data=data)
+        if self.nested_fields:
+            # ListSerializer reuses this serializer; retain children on each result.
+            validated_data.update(self._children_set)
+        return validated_data
 
     @classmethod
     def update_or_create(cls, partial=None, id=None, context=None, **validated_data):
@@ -216,21 +226,21 @@ class BaseModelSerializer(serializers.ModelSerializer):
             )
 
     def validated_children_set(self, validated_data):
-        children_set = getattr(self, "_children_set", [])
-        children_set = children_set or {i: validated_data.pop(i, []) for i in self.nested_fields}
-        return children_set
+        return {i: validated_data.pop(i, []) for i in self.nested_fields}
 
     def update(self, instance, validated_data):
-        children_set = self.validated_children_set(validated_data)
-        instance = super().update(instance, validated_data)
-        self.update_nested_fields(instance, validated_data, children_set)
-        return instance
+        with transaction.atomic(using=router.db_for_write(self.Meta.model, instance=instance)):
+            children_set = self.validated_children_set(validated_data)
+            instance = super().update(instance, validated_data)
+            self.update_nested_fields(instance, validated_data, children_set)
+            return instance
 
     def create(self, validated_data):
-        children_set = self.validated_children_set(validated_data)
-        instance = super().create(validated_data)
-        self.update_nested_fields(instance, validated_data, children_set)
-        return instance
+        with transaction.atomic(using=router.db_for_write(self.Meta.model)):
+            children_set = self.validated_children_set(validated_data)
+            instance = super().create(validated_data)
+            self.update_nested_fields(instance, validated_data, children_set)
+            return instance
 
     @property
     def view_action(self):
@@ -261,7 +271,11 @@ class BatchSerializerMixin:
             id_field = self.fields[id_attr]
             id_value = id_field.get_value(data)
 
-            ret[id_attr] = id_value
+            # Coerce the lookup id through its field (e.g. "1" -> 1) so
+            # BatchListSerializer.update keys its dict by the same type as the
+            # instance pk. Skip when the id is absent from the payload.
+            if id_value is not empty:
+                ret[id_attr] = id_field.to_internal_value(id_value)
 
         return ret
 
@@ -272,7 +286,7 @@ class BatchListSerializer(serializers.ListSerializer):
     def update(self, queryset, all_validated_data):
         id_attr = getattr(self.child.Meta, "update_lookup_field", "id")
 
-        updating = {i.pop(id_attr): i for i in all_validated_data}
+        updating = {i.pop(id_attr, empty): i for i in all_validated_data}
 
         if not all(bool(i) and not inspect.isclass(i) for i in updating.keys()):
             raise exceptions.ValidationError("")
