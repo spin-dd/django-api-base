@@ -119,6 +119,20 @@ class Project:
         return worktree.resolve()
 
 
+def git_binary() -> Path:
+    """Resolve Git's real executable using the unrestricted host PATH.
+
+    On macOS, symlinking the /usr/bin/git shim into a restricted PATH can make
+    xcrun repeatedly invoke the same shim. The executable in --exec-path avoids this.
+    """
+    exec_path = subprocess.run(
+        ["git", "--exec-path"], capture_output=True, text=True, check=True, timeout=30
+    ).stdout.strip()
+    binary = Path(exec_path) / "git"
+    assert os.access(binary, os.X_OK), binary
+    return binary
+
+
 @pytest.fixture
 def project(tmp_path):
     root = tmp_path / "repo"
@@ -131,8 +145,10 @@ def project(tmp_path):
     (root / ".gitignore").write_text(".claude/worktrees/\n.venv/\n.stub-installed\n.stub-env-created\n")
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
+    real_git = git_binary()
     for tool in ("bash", "git", "sed", "env", "cut", "mkdir", "cp", "rm", "chmod"):
-        (bin_dir / tool).symlink_to(shutil.which(tool))
+        path = real_git if tool == "git" else shutil.which(tool)
+        (bin_dir / tool).symlink_to(path)
     for tool in ("uv", "uvx", "poetry", "direnv", "devenv", "mktemp"):
         (bin_dir / tool).write_text(TOOL_STUB)
         (bin_dir / tool).chmod(0o755)
@@ -164,7 +180,9 @@ def project(tmp_path):
     project = Project(root.resolve(), env, tmp_path / "tools.log")
     for relative in ("devenv.nix", ".envrc"):
         (root / relative).write_text("# devenv config\n")
-    project.git("init", "-q", "-b", "main")
+    # Initialize from Git's installed path so Apple Git can find its templates.
+    result = project.run(str(real_git), "init", "-q", "-b", "main", cwd=root)
+    assert result.returncode == 0, result.stderr
     project.git("add", ".gitignore", "devenv.nix", ".envrc", *[p for p in PROJECT_FILES if (root / p).exists()])
     project.git("commit", "-q", "-m", "init")
     return project
@@ -330,7 +348,7 @@ def minimal_path(project, tmp_path, excluded=()):
     ):
         if tool in excluded:
             continue
-        path = shutil.which(tool, path=project.env["PATH"])
+        path = git_binary() if tool == "git" else shutil.which(tool, path=project.env["PATH"])
         assert path, tool
         (bin_dir / tool).symlink_to(path)
     return str(bin_dir)
