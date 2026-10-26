@@ -6,12 +6,19 @@
   ...
 }:
 
+let
+  pkgs-python39 = import inputs.nixpkgs-python39 { system = pkgs.stdenv.system; };
+in
 {
-  # Python 3.9 + poetry
+  # Python 3.9（nixos-24.05 の python39 を使用）+ poetry
   languages.python = {
     enable = true;
-    version = "3.9";
-    poetry.enable = true;
+    package = pkgs-python39.python39;
+    poetry = {
+      enable = true;
+      # direnv の読み込みで poetry install を走らせない（scripts/bootstrap-worktree.sh が入れる）
+      install.enable = false;
+    };
   };
 
   dotenv.enable = true;

@@ -17,7 +17,7 @@ die() {
 }
 
 # ---- リポジトリごとの値（ここだけを変える。出どころを各行の上に書く） ----
-# devenv.nix の languages.python.version と同じ版（ホスト経路でも揃える）。
+# devenv.nix の languages.python.package（python39）と同じ版（ホスト経路でも揃える）。
 PYTHON_VERSION=3.9
 # CI（.github/workflows/ci.yml）の POETRY_VERSION と同じ版。
 POETRY_VERSION=2.2.1
