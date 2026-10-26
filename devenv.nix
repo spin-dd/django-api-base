@@ -6,12 +6,19 @@
   ...
 }:
 
+let
+  pkgs-python39 = import inputs.nixpkgs-python39 { system = pkgs.stdenv.system; };
+in
 {
-  # Python 3.9 + poetry
+  # Python 3.9（nixos-24.05 の python39 を使用）+ poetry
   languages.python = {
     enable = true;
-    version = "3.9";
-    poetry.enable = true;
+    package = pkgs-python39.python39;
+    poetry = {
+      enable = true;
+      # direnv の読み込みで poetry install を走らせない（scripts/bootstrap-worktree.sh が入れる）
+      install.enable = false;
+    };
   };
 
   dotenv.enable = true;
@@ -49,6 +56,21 @@
     ruff.enable = true;
     ruff-format.enable = true;
     nixfmt-rfc-style.enable = true;
+  };
+
+  # devenv の自動 install を止めると、devenv は .venv を有効にしない（有効にするのは install の task）。
+  # 同じ形の task で、scripts/bootstrap-worktree.sh が作った .venv を有効にする。
+  tasks."app:python:activate" = {
+    exec = ''
+      if [ -f "$DEVENV_ROOT/.venv/bin/activate" ]; then
+        source "$DEVENV_ROOT/.venv/bin/activate"
+      fi
+    '';
+    exports = [
+      "PATH"
+      "VIRTUAL_ENV"
+    ];
+    before = [ "devenv:enterShell" ];
   };
 
   enterShell = ''

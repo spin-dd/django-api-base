@@ -10,15 +10,13 @@ inputs:
         follows: nixpkgs
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
-  nixpkgs-python:
-    url: github:cachix/nixpkgs-python
-    inputs:
-      nixpkgs:
-        follows: nixpkgs
+  # Python 3.9 だけを取る。nixos-24.05 の python39 は cache.nixos.org に載る。
+  # nixpkgs-python を nixpkgs に follows させるとキャッシュが当たらず、Python をソースからビルドしていた。
+  nixpkgs-python39:
+    url: github:NixOS/nixpkgs/nixos-24.05
 
 cachix:
   enable: true
   caches:
-    - nixpkgs-python
     - devenv
     - nix-community
