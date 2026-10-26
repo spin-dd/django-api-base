@@ -142,11 +142,11 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
         data = copied
         validated_data = super().run_validation(data=data)
-        for name, children in self._children_set.lists():
-            validated_data[name] = (
-                children if isinstance(self.fields[name], serializers.ListSerializer) else self._children_set[name]
-            )
-        return validated_data
+        children_set = {
+            name: children if isinstance(self.fields[name], serializers.ListSerializer) else self._children_set[name]
+            for name, children in self._children_set.lists()
+        }
+        return self._keep_validated_children(validated_data, children_set)
 
     def run_validation(self, data=empty):
         """(override)"""
@@ -160,8 +160,20 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
         validated_data = super().run_validation(data=data)
         if self.nested_fields:
+            return self._keep_validated_children(validated_data, self._children_set)
+        return validated_data
+
+    @property
+    def _in_list_serializer(self):
+        return isinstance(self.parent, serializers.ListSerializer)
+
+    def _keep_validated_children(self, validated_data, children_set):
+        if self._in_list_serializer:
             # ListSerializer reuses this serializer; retain children on each result.
-            validated_data.update(self._children_set)
+            validated_data.update(children_set)
+        else:
+            # Consumers pass validated_data to services and models, so keep it to the model fields.
+            self._validated_children_set = children_set
         return validated_data
 
     @classmethod
@@ -226,7 +238,11 @@ class BaseModelSerializer(serializers.ModelSerializer):
             )
 
     def validated_children_set(self, validated_data):
-        return {i: validated_data.pop(i, []) for i in self.nested_fields}
+        children_set = getattr(self, "_validated_children_set", None)
+        if self._in_list_serializer or children_set is None:
+            return {i: validated_data.pop(i, []) for i in self.nested_fields}
+        # Subclasses may take the children before calling update()/create(); return the same ones every time.
+        return children_set
 
     def update(self, instance, validated_data):
         with transaction.atomic(using=router.db_for_write(self.Meta.model, instance=instance)):
