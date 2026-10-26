@@ -58,6 +58,21 @@ in
     nixfmt-rfc-style.enable = true;
   };
 
+  # devenv の自動 install を止めると、devenv は .venv を有効にしない（有効にするのは install の task）。
+  # 同じ形の task で、scripts/bootstrap-worktree.sh が作った .venv を有効にする。
+  tasks."app:python:activate" = {
+    exec = ''
+      if [ -f "$DEVENV_ROOT/.venv/bin/activate" ]; then
+        source "$DEVENV_ROOT/.venv/bin/activate"
+      fi
+    '';
+    exports = [
+      "PATH"
+      "VIRTUAL_ENV"
+    ];
+    before = [ "devenv:enterShell" ];
+  };
+
   enterShell = ''
     echo "Python $(python --version | cut -d' ' -f2)"
     # `poetry --version` は "Poetry (version 2.2.1)" なので、閉じ括弧を落とす。
