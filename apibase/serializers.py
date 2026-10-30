@@ -246,6 +246,7 @@ class BaseModelSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         with transaction.atomic(using=router.db_for_write(self.Meta.model, instance=instance)):
+            validated_data.pop("id", None)
             children_set = self.validated_children_set(validated_data)
             instance = super().update(instance, validated_data)
             self.update_nested_fields(instance, validated_data, children_set)
