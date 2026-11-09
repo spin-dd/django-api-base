@@ -20,5 +20,5 @@ djangorestframework-csv = "^2.1.0"
 pytest = "^5.2"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.6.0"]
+build-backend = "poetry.core.masonry.api"
